@@ -1,98 +1,78 @@
-# Enhanced S3 Bucket Outputs
+# S3 Bucket Outputs
 output "s3_bucket_id" {
-  description = "The name of the S3 bucket"
+  description = "S3 bucket name (for uploading files)"
   value       = aws_s3_bucket.static_assets.id
 }
 
 output "s3_bucket_arn" {
-  description = "The ARN of the S3 bucket"
+  description = "S3 bucket ARN (for IAM policies)"
   value       = aws_s3_bucket.static_assets.arn
 }
 
 output "s3_bucket_domain_name" {
-  description = "The bucket domain name"
+  description = "S3 bucket domain name"
   value       = aws_s3_bucket.static_assets.bucket_domain_name
 }
 
 output "s3_bucket_regional_domain_name" {
-  description = "The bucket region-specific domain name"
+  description = "S3 bucket regional domain name (used as CloudFront origin)"
   value       = aws_s3_bucket.static_assets.bucket_regional_domain_name
 }
 
 output "s3_bucket_versioning_status" {
-  description = "The versioning status of the S3 bucket"
+  description = "Current versioning status of S3 bucket"
   value       = aws_s3_bucket_versioning.static_assets.versioning_configuration[0].status
 }
 
 output "s3_bucket_encryption_algorithm" {
-  description = "The encryption algorithm used for the S3 bucket"
+  description = "Encryption algorithm used for S3 bucket"
   value       = aws_s3_bucket_server_side_encryption_configuration.static_assets.rule[0].apply_server_side_encryption_by_default[0].sse_algorithm
 }
 
 output "s3_bucket_kms_key_id" {
-  description = "The KMS key ID used for S3 bucket encryption (if applicable)"
+  description = "KMS key used for S3 encryption (null if using AES256)"
   value       = aws_s3_bucket_server_side_encryption_configuration.static_assets.rule[0].apply_server_side_encryption_by_default[0].kms_master_key_id
 }
 
-# Enhanced CloudFront Distribution Outputs
+# CloudFront Distribution Outputs
 output "cloudfront_distribution_id" {
-  description = "The identifier for the CloudFront distribution"
+  description = "CloudFront distribution ID (use for invalidations)"
   value       = aws_cloudfront_distribution.static_assets.id
 }
 
 output "cloudfront_distribution_arn" {
-  description = "The ARN of the CloudFront distribution"
+  description = "CloudFront distribution ARN"
   value       = aws_cloudfront_distribution.static_assets.arn
 }
 
 output "cloudfront_distribution_domain_name" {
-  description = "The domain name of the CloudFront distribution"
+  description = "CloudFront distribution domain name (your CDN URL)"
   value       = aws_cloudfront_distribution.static_assets.domain_name
 }
 
 output "cloudfront_distribution_hosted_zone_id" {
-  description = "The CloudFront distribution hosted zone ID"
+  description = "CloudFront hosted zone ID (for Route 53 alias records)"
   value       = aws_cloudfront_distribution.static_assets.hosted_zone_id
 }
 
 output "cloudfront_distribution_status" {
-  description = "The current status of the CloudFront distribution"
+  description = "Distribution status (InProgress or Deployed)"
   value       = aws_cloudfront_distribution.static_assets.status
 }
 
 output "cloudfront_distribution_etag" {
-  description = "The current version of the CloudFront distribution's information"
+  description = "Distribution ETag (changes when distribution is updated)"
   value       = aws_cloudfront_distribution.static_assets.etag
 }
 
-output "cloudfront_distribution_enabled" {
-  description = "Whether the CloudFront distribution is enabled"
-  value       = aws_cloudfront_distribution.static_assets.enabled
-}
-
-output "cloudfront_distribution_ipv6_enabled" {
-  description = "Whether IPv6 is enabled for the CloudFront distribution"
-  value       = aws_cloudfront_distribution.static_assets.is_ipv6_enabled
-}
-
-output "cloudfront_distribution_http_version" {
-  description = "The HTTP version used by the CloudFront distribution"
-  value       = aws_cloudfront_distribution.static_assets.http_version
-}
-
-output "cloudfront_distribution_price_class" {
-  description = "The price class of the CloudFront distribution"
-  value       = aws_cloudfront_distribution.static_assets.price_class
-}
-
-# Enhanced CloudFront Origin Access Control Outputs
+# Origin Access Control Outputs  
 output "cloudfront_origin_access_control_id" {
-  description = "The identifier for the CloudFront origin access control"
+  description = "Origin Access Control ID"
   value       = aws_cloudfront_origin_access_control.static_assets.id
 }
 
 output "cloudfront_origin_access_control_arn" {
-  description = "The ARN of the CloudFront origin access control"
+  description = "Origin Access Control ARN"
   value       = aws_cloudfront_origin_access_control.static_assets.arn
 }
 
@@ -198,20 +178,45 @@ output "budget_arn" {
   value       = var.enable_cost_optimization && var.cost_optimization_config.enable_budget_alerts ? aws_budgets_budget.cdn_budget[0].arn : null
 }
 
-# Combined Outputs
+# Key Outputs - These are what you'll actually use
 output "cdn_url" {
-  description = "The URL of the CloudFront distribution"
+  description = "Your CDN URL - use this to serve content"
   value       = "https://${aws_cloudfront_distribution.static_assets.domain_name}"
 }
 
-output "cdn_aliases" {
-  description = "The aliases of the CloudFront distribution"
+output "s3_upload_bucket" {
+  description = "S3 bucket name where you upload your files"
+  value       = aws_s3_bucket.static_assets.id
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID - use this for invalidations"
+  value       = aws_cloudfront_distribution.static_assets.id
+}
+
+output "custom_domains" {
+  description = "Custom domains configured for this CDN"
   value       = aws_cloudfront_distribution.static_assets.aliases
 }
 
-output "origin_domain" {
-  description = "The origin domain name (S3 bucket regional domain name)"
-  value       = aws_s3_bucket.static_assets.bucket_regional_domain_name
+# Route 53 Integration
+output "route53_alias_target" {
+  description = "Use these values for Route 53 alias records"
+  value = {
+    dns_name    = aws_cloudfront_distribution.static_assets.domain_name
+    zone_id     = aws_cloudfront_distribution.static_assets.hosted_zone_id
+  }
+}
+
+# CLI Commands
+output "aws_cli_upload_example" {
+  description = "Example AWS CLI command to upload files"
+  value       = "aws s3 sync ./build/ s3://${aws_s3_bucket.static_assets.id} --delete"
+}
+
+output "aws_cli_invalidation_example" {
+  description = "Example AWS CLI command to create invalidation"
+  value       = "aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.static_assets.id} --paths '/*'"
 }
 
 # Enhanced Security Outputs

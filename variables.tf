@@ -1,75 +1,75 @@
 # Required Variables
 variable "bucket_name" {
-  description = "Name of the S3 bucket for static assets"
+  description = "S3 bucket name for static files (must be globally unique)"
   type        = string
 
   validation {
     condition     = can(regex("^[a-z0-9][a-z0-9.-]*[a-z0-9]$", var.bucket_name))
-    error_message = "Bucket name must be between 3 and 63 characters, contain only lowercase letters, numbers, hyphens, and periods, and start and end with a letter or number."
+    error_message = "Bucket names must be 3-63 chars, lowercase letters/numbers/hyphens only, and start/end with letter or number."
   }
 }
 
 variable "distribution_name" {
-  description = "Name for the CloudFront distribution"
+  description = "CloudFront distribution name (used for resource naming)"
   type        = string
 
   validation {
     condition     = length(var.distribution_name) >= 1 && length(var.distribution_name) <= 128
-    error_message = "Distribution name must be between 1 and 128 characters."
+    error_message = "Distribution name must be 1-128 characters."
   }
 }
 
-# Enhanced S3 Configuration
+# S3 Configuration
 variable "s3_bucket_description" {
   description = "Description for the S3 bucket"
   type        = string
-  default     = "S3 bucket for static assets" # Default: "S3 bucket for static assets"
+  default     = "S3 bucket for static assets"
 }
 
 variable "s3_bucket_tags" {
   description = "Additional tags for the S3 bucket"
   type        = map(string)
-  default     = {} # Default: empty map
+  default     = {}
 }
 
 variable "enable_versioning" {
-  description = "Whether to enable versioning on the S3 bucket"
+  description = "Enable S3 bucket versioning (recommended for production)"
   type        = bool
-  default     = true # Default: true
+  default     = true
 }
 
 variable "s3_bucket_versioning_status" {
-  description = "Versioning status for the S3 bucket"
+  description = "Versioning status (Enabled/Suspended/Disabled)"
   type        = string
-  default     = "Enabled" # Default: "Enabled"
+  default     = "Enabled"
 
   validation {
     condition     = contains(["Enabled", "Suspended", "Disabled"], var.s3_bucket_versioning_status)
-    error_message = "Versioning status must be one of: Enabled, Suspended, Disabled."
+    error_message = "Versioning status must be Enabled, Suspended, or Disabled."
   }
 }
 
 variable "s3_bucket_encryption_algorithm" {
-  description = "Server-side encryption algorithm for the S3 bucket"
+  description = "Encryption type - AES256 (free) or aws:kms (charged per key usage)"
   type        = string
-  default     = "AES256" # Default: "AES256"
+  default     = "AES256"
 
   validation {
     condition     = contains(["AES256", "aws:kms"], var.s3_bucket_encryption_algorithm)
-    error_message = "Encryption algorithm must be one of: AES256, aws:kms."
+    error_message = "Encryption algorithm must be AES256 or aws:kms."
   }
 }
 
 variable "s3_bucket_kms_key_id" {
-  description = "KMS key ID for S3 bucket encryption (required if encryption_algorithm is aws:kms)"
+  description = "KMS key ARN (required if using aws:kms encryption)"
   type        = string
-  default     = null # Default: null
+  default     = null
 }
 
 variable "s3_bucket_key_enabled" {
-  description = "Whether to enable bucket key for S3 bucket"
+  description = "Use S3 bucket key to reduce KMS costs (only applies to KMS encryption)"
   type        = bool
-  default     = true # Default: true
+  default     = true
 }
 
 variable "s3_bucket_public_access_block" {
@@ -122,69 +122,69 @@ variable "s3_bucket_policy" {
   default     = null # Default: null (default CloudFront policy)
 }
 
-# Enhanced CloudFront Configuration
+# CloudFront Configuration
 variable "enabled" {
-  description = "Whether the CloudFront distribution is enabled"
+  description = "Enable the CloudFront distribution (disable to stop serving traffic)"
   type        = bool
-  default     = true # Default: true
+  default     = true
 }
 
 variable "enable_ipv6" {
-  description = "Whether to enable IPv6 support"
+  description = "Enable IPv6 for the CloudFront distribution"
   type        = bool
-  default     = true # Default: true
+  default     = true
 }
 
 variable "comment" {
-  description = "Comment for the CloudFront distribution"
+  description = "Comment for the CloudFront distribution (visible in AWS console)"
   type        = string
-  default     = "CDN distribution for static assets" # Default: "CDN distribution for static assets"
+  default     = "CDN distribution for static assets"
 }
 
 variable "default_root_object" {
-  description = "Default root object for the CloudFront distribution"
+  description = "Default file to serve from root path (/ requests)"
   type        = string
-  default     = "index.html" # Default: "index.html"
+  default     = "index.html"
 }
 
 variable "http_version" {
-  description = "HTTP version for the CloudFront distribution"
+  description = "HTTP version - http2 recommended for better performance"
   type        = string
-  default     = "http2" # Default: "http2"
+  default     = "http2"
 
   validation {
     condition     = contains(["http1.1", "http2", "http2and3", "http3"], var.http_version)
-    error_message = "HTTP version must be one of: http1.1, http2, http2and3, http3."
+    error_message = "HTTP version must be http1.1, http2, http2and3, or http3."
   }
 }
 
 variable "retain_on_delete" {
-  description = "Whether to retain the CloudFront distribution when deleted"
+  description = "Keep the distribution when destroying (useful to avoid recreating)"
   type        = bool
-  default     = false # Default: false
+  default     = false
 }
 
 variable "wait_for_deployment" {
-  description = "Whether to wait for the CloudFront distribution to be deployed"
+  description = "Wait for distribution to deploy before completing (takes ~15 minutes)"
   type        = bool
-  default     = true # Default: true
+  default     = true
 }
 
 variable "price_class" {
-  description = "Price class for the CloudFront distribution"
+  description = "Edge location coverage - PriceClass_100 covers US/EU/Asia and is cheapest"
   type        = string
-  default     = "PriceClass_100" # Default: "PriceClass_100"
+  default     = "PriceClass_100"
   
   validation {
     condition     = contains(["PriceClass_100", "PriceClass_200", "PriceClass_All"], var.price_class)
-    error_message = "Price class must be one of: PriceClass_100, PriceClass_200, PriceClass_All."
+    error_message = "Price class must be PriceClass_100, PriceClass_200, or PriceClass_All."
   }
 }
 
 variable "aliases" {
-  description = "List of aliases for the CloudFront distribution"
+  description = "Custom domain names for the distribution (requires SSL certificate)"
   type        = list(string)
-  default     = [] # Default: empty list
+  default     = []
 }
 
 variable "origin_access_control_name" {
@@ -260,82 +260,82 @@ variable "cached_methods" {
 }
 
 variable "forward_query_string" {
-  description = "Whether to forward query strings to the origin"
+  description = "Forward query strings to S3 (needed for SPAs with client-side routing)"
   type        = bool
-  default     = false # Default: false
+  default     = false
 }
 
 variable "forward_cookies" {
-  description = "How to forward cookies to the origin"
+  description = "Forward cookies to origin (none/all/whitelist)"
   type        = string
-  default     = "none" # Default: "none"
+  default     = "none"
   
   validation {
     condition     = contains(["none", "all", "whitelist"], var.forward_cookies)
-    error_message = "Forward cookies must be one of: none, all, whitelist."
+    error_message = "Forward cookies must be none, all, or whitelist."
   }
 }
 
 variable "forward_cookies_whitelist" {
-  description = "List of cookies to forward when forward_cookies is whitelist"
+  description = "Cookie names to forward when forward_cookies is whitelist"
   type        = list(string)
-  default     = [] # Default: empty list
+  default     = []
 }
 
 variable "forward_headers" {
-  description = "List of headers to forward to the origin"
+  description = "Headers to forward to origin (reduces cache efficiency)"
   type        = list(string)
-  default     = [] # Default: empty list
+  default     = []
 }
 
 variable "viewer_protocol_policy" {
-  description = "Viewer protocol policy for the cache behavior"
+  description = "HTTPS policy (redirect-to-https recommended)"
   type        = string
-  default     = "redirect-to-https" # Default: "redirect-to-https"
+  default     = "redirect-to-https"
   
   validation {
     condition     = contains(["allow-all", "https-only", "redirect-to-https"], var.viewer_protocol_policy)
-    error_message = "Viewer protocol policy must be one of: allow-all, https-only, redirect-to-https."
+    error_message = "Viewer protocol policy must be allow-all, https-only, or redirect-to-https."
   }
 }
 
 variable "min_ttl" {
-  description = "Minimum TTL for cached objects"
+  description = "Minimum cache time in seconds (0 allows origin headers to control caching)"
   type        = number
-  default     = 0 # Default: 0
+  default     = 0
   
   validation {
     condition     = var.min_ttl >= 0
-    error_message = "Minimum TTL must be 0 or greater."
+    error_message = "Minimum TTL cannot be negative."
   }
 }
 
 variable "default_ttl" {
-  description = "Default TTL for cached objects"
+  description = "Default cache time in seconds (86400 = 1 day)"
   type        = number
-  default     = 86400 # Default: 86400 (24 hours)
+  default     = 86400
   
   validation {
     condition     = var.default_ttl >= 0
-    error_message = "Default TTL must be 0 or greater."
+    error_message = "Default TTL cannot be negative."
   }
 }
 
 variable "max_ttl" {
-  description = "Maximum TTL for cached objects"
+  description = "Maximum cache time in seconds (31536000 = 1 year)"
   type        = number
-  default     = 31536000 # Default: 31536000 (1 year)
+  default     = 31536000
   
   validation {
     condition     = var.max_ttl >= 0
-    error_message = "Maximum TTL must be 0 or greater."
+    error_message = "Maximum TTL cannot be negative."
   }
 }
 
 variable "enable_compression" {
-  description = "Whether to enable compression for the cache behavior"
+  description = "Compress text files automatically (saves bandwidth)"
   type        = bool
-  default     = true # Default: true
+  default     = true
 }
 
 variable "smooth_streaming" {

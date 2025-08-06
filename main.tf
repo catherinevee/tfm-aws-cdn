@@ -1,15 +1,14 @@
-# Enhanced CDN Module with comprehensive customization options
-# This module provides a highly configurable CloudFront + S3 CDN solution
+# CloudFront + S3 CDN Terraform Module
+# Creates a private S3 bucket and CloudFront distribution with sensible defaults
 
-# Data sources
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# Enhanced locals for compliance tagging and custom naming
+# Merge compliance tags if enabled
 locals {
   enhanced_tags = var.enable_compliance_tagging ? merge(var.common_tags, var.compliance_tags) : var.common_tags
   
-  # Custom naming for resources
+  # Generate resource names with fallbacks
   origin_access_control_name = coalesce(var.origin_access_control_name, "${var.distribution_name}-oac")
   origin_access_control_description = coalesce(var.origin_access_control_description, "Origin Access Control for ${var.distribution_name}")
   security_headers_function_name = coalesce(var.security_headers_function_name, "${var.distribution_name}-security-headers")
@@ -18,7 +17,7 @@ locals {
   kms_key_alias = "${var.distribution_name}-cdn-key"
 }
 
-# Enhanced KMS Key for encryption
+# KMS key for S3 encryption (if enabled)
 resource "aws_kms_key" "cdn_encryption" {
   count = var.enable_kms_encryption ? 1 : 0
 
@@ -65,7 +64,7 @@ resource "aws_kms_alias" "cdn_encryption" {
   target_key_id = aws_kms_key.cdn_encryption[0].key_id
 }
 
-# Enhanced S3 Bucket for static assets
+# S3 bucket for static assets - private, CloudFront access only
 resource "aws_s3_bucket" "static_assets" {
   bucket = var.bucket_name
 
@@ -75,7 +74,7 @@ resource "aws_s3_bucket" "static_assets" {
   })
 }
 
-# Enhanced S3 Bucket versioning
+# Enable versioning for data protection
 resource "aws_s3_bucket_versioning" "static_assets" {
   bucket = aws_s3_bucket.static_assets.id
   versioning_configuration {
@@ -83,7 +82,7 @@ resource "aws_s3_bucket_versioning" "static_assets" {
   }
 }
 
-# Enhanced S3 Bucket server-side encryption
+# Encrypt everything in the bucket
 resource "aws_s3_bucket_server_side_encryption_configuration" "static_assets" {
   bucket = aws_s3_bucket.static_assets.id
 
@@ -96,7 +95,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "static_assets" {
   }
 }
 
-# Enhanced S3 Bucket public access block
+# Block all public access - only CloudFront can read
 resource "aws_s3_bucket_public_access_block" "static_assets" {
   bucket = aws_s3_bucket.static_assets.id
 
@@ -106,7 +105,7 @@ resource "aws_s3_bucket_public_access_block" "static_assets" {
   restrict_public_buckets = var.s3_bucket_public_access_block.restrict_public_buckets
 }
 
-# Enhanced S3 Bucket lifecycle configuration
+# Lifecycle rules for cost optimization (transition to cheaper storage classes)
 resource "aws_s3_bucket_lifecycle_configuration" "static_assets" {
   count  = length(var.s3_bucket_lifecycle_rules) > 0 ? 1 : 0
   bucket = aws_s3_bucket.static_assets.id
@@ -158,7 +157,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "static_assets" {
   }
 }
 
-# Enhanced S3 Bucket policy for CloudFront access
+# Bucket policy - only CloudFront can access the bucket
 resource "aws_s3_bucket_policy" "static_assets" {
   bucket = aws_s3_bucket.static_assets.id
   policy = var.s3_bucket_policy != null ? var.s3_bucket_policy : jsonencode({
